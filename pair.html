@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩𝑶𝑻 - Link WhatsApp</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-image: url("https://i.ibb.co/pXL9RYv/temp-image.jpg");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: cover;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .box {
+      width: 300px;
+      padding: 20px;
+      position: relative;
+      text-align: center;
+      background-color: rgba(255,255,255,0.5);
+      border-radius: 10px;
+      box-shadow: none;
+    }
+
+    #text {
+      color: #000;
+    }
+
+    .centered-text {
+      color: #000;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .sub-title {
+      color: #000;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 15px;
+    }
+
+    .social-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .social-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2rem;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .yt { border: 1.5px solid #ff0000; color: #ff0000; }
+    .wa { border: 1.5px solid #25d366; color: #25d366; }
+
+    .input-container {
+      display: flex;
+      background: white;
+      border-radius: 1rem;
+      background: linear-gradient(45deg, #c5c5c5 0%, #ffffff 100%);
+      padding: 0.3rem;
+      gap: 0.3rem;
+      max-width: 300px;
+      width: 100%;
+      margin-bottom: 15px;
+    }
+
+    .input-container input {
+      border-radius: 0.8rem 0 0 0.8rem;
+      background: #e8e8e8;
+      width: 75%;
+      padding: 1rem;
+      border: none;
+      border-left: 2px solid #ff9d9d;
+      color: #000;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .input-container button {
+      width: 25%;
+      padding: 1rem;
+      background: linear-gradient(135deg, #8a2be2 0%, #800080 100%);
+      font-weight: 900;
+      text-transform: uppercase;
+      color: white;
+      border: none;
+      border-radius: 0 1rem 1rem 0;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .input-container button:hover {
+      background: linear-gradient(135deg, #A8E4A0 0%, #32CD32 100%);
+      color: red;
+    }
+
+    #result {
+      margin-top: 15px;
+      color: #000;
+      font-weight: bold;
+    }
+
+    .code-display {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: red;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 8px;
+      border-radius: 5px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    .bottom-copy-action {
+      margin-top: 10px;
+      padding: 8px 15px;
+      background: #800080;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .glowing-text {
+      margin-top: 20px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 0 5px #FF0000, 0 0 10px #FF0000;
+      animation: glow 2s infinite;
+    }
+
+    @keyframes glow {
+      0% { text-shadow: 0 0 5px #FF0000, 0 0 10px #FF0000; }
+      50% { text-shadow: 0 0 5px #32CD32, 0 0 10px #32CD32; }
+      100% { text-shadow: 0 0 5px #1E90FF, 0 0 10px #1E90FF; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="box">
+      <div id="text">
+        <h2 class="centered-text">✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩𝑶𝑻✨</h2>
+        <div class="sub-title">Link your WhatsApp device</div>
+
+        <div class="social-row">
+          <a href="https://youtube.com/c/YourChannelExample" target="_blank" class="social-box yt"><i class="fab fa-youtube"></i></a>
+          <a href="https://whatsapp.com/channel/0029VbDYYAzATRSkeyugCc2x" target="_blank" class="social-box wa"><i class="fab fa-whatsapp"></i></a>
+        </div>
+
+        <h6 class="centered-text">Enter your number with country code.</h6>
+        
+        <div class="input-container">
+          <input placeholder="+923xxxxxxxx" type="text" id="number" autocomplete="off">
+          <button onclick="getCode()">Enter</button>
+        </div>
+       
+        <div id="result">
+          <span style="color: black;">Your pair code will appear here</span>
+        </div>
+
+        <button class="bottom-copy-action" onclick="triggerPlaceholderCopy()">
+          <i class="far fa-copy"></i> Copy Code
+        </button>
+      </div>
+    </div>
+    <div class="glowing-text">ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀʟɪ ʀᴀᴢᴀ</div>
+  </div>
+
+  <script>
+    async function getCode() {
+      const numberInput = document.getElementById("number");
+      const resDiv = document.getElementById("result");
+      const num = numberInput.value.replace(/[^0-9]/g, '');
+
+      if (!num) {
+        resDiv.innerHTML = "<span style='color:red;'>❗ Input Required</span>";
+        return;
+      }
+
+      resDiv.innerHTML = "<span style='color:black;'>Please wait🔎</span>";
+
+      try {
+        const req = await fetch(`/code?number=${num}`);
+        const data = await req.json();
+
+        if (data.code) {
+          resDiv.innerHTML = `<div class="code-display" id="copy-target" onclick="copyCode('${data.code}')">CODE: <span style="color:black;">${data.code}</span></div>`;
+          window.currentGeneratedCode = data.code;
+        } else if (data.status === 'already_connected') {
+          resDiv.innerHTML = "<span style='color:green;'>❌ Already Linked</span>";
+        } else {
+          resDiv.innerHTML = "<span style='color:red;'>❌ Connection Failed</span>";
+        }
+      } catch (e) {
+        resDiv.innerHTML = "<span style='color:red;'>❌ Server Unreachable</span>";
+      }
+    }
+
+    function copyCode(code) {
+      navigator.clipboard.writeText(code);
+      const display = document.getElementById('copy-target');
+      if(!display) return;
+      
+      display.innerHTML = "<span style='color:blue;'>COPIED</span>";
+      
+      setTimeout(() => {
+        display.innerHTML = `CODE: <span style="color:black;">${code}</span>`;
+      }, 1500);
+    }
+
+    function triggerPlaceholderCopy() {
+      if(window.currentGeneratedCode) {
+        copyCode(window.currentGeneratedCode);
+      } else {
+        alert("No code generated yet to copy!");
+      }
+    }
+  </script>
+</body>
+</html>

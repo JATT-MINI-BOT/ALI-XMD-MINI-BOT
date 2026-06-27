@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩𝑶𝑻 | 𝑺𝑬𝑺𝑺𝑰𝑶𝑵</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    body{
+      background:black;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      font-family:'Segoe UI', Arial, sans-serif;
+      color:white;
+      overflow:hidden;
+    }
+
+    .button-container{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
+    }
+
+    h3{
+      font-size:2rem;
+      letter-spacing:3px;
+      margin-top:-40px;
+      margin-bottom:70px; /* SPACE BETWEEN NAME & BUTTON */
+      opacity:0;
+      animation:fadeIn 2s forwards;
+    }
+
+    .button{
+      width:240px;
+      height:52px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:10px;
+      margin-bottom:18px;
+      border:none;
+      border-radius:12px;
+      position:relative;
+      background:linear-gradient(0deg,#000,#272727);
+      color:white;
+      text-decoration:none;
+      font-size:15px;
+      font-weight:900;
+      cursor:pointer;
+      transition:0.3s;
+    }
+
+    .button:hover{
+      transform:scale(1.05);
+    }
+
+    .button::before,
+    .button::after{
+      content:'';
+      position:absolute;
+      top:-2px;
+      left:-2px;
+      width:calc(100% + 4px);
+      height:calc(100% + 4px);
+      border-radius:12px;
+      background:linear-gradient(
+        45deg,
+        #ff0000,
+        #ff7300,
+        #fffb00,
+        #48ff00,
+        #00ffd5,
+        #002bff,
+        #7a00ff,
+        #ff00c8,
+        #ff0000
+      );
+      background-size:400%;
+      z-index:-1;
+      animation:steam 10s linear infinite;
+    }
+
+    .button::after{
+      filter:blur(25px);
+    }
+
+    .button span{
+      z-index:1;
+    }
+
+    p{
+      margin-top:10px;
+      margin-bottom:18px;
+      color:#aaa;
+      font-size:12px;
+      letter-spacing:1px;
+    }
+
+    footer{
+      position:fixed;
+      bottom:0;
+      width:100%;
+      background:#111;
+      padding:14px 0;
+      text-align:center;
+      font-size:14px;
+      color:white;
+      letter-spacing:1px;
+    }
+
+    @keyframes steam{
+      0%{
+        background-position:0 0;
+      }
+      50%{
+        background-position:400% 0;
+      }
+      100%{
+        background-position:0 0;
+      }
+    }
+
+    @keyframes fadeIn{
+      to{
+        opacity:1;
+      }
+    }
+
+    @media(max-width:500px){
+
+      h3{
+        font-size:1.8rem;
+        margin-bottom:60px;
+      }
+
+      .button{
+        width:220px;
+        height:48px;
+        font-size:14px;
+      }
+
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="button-container">
+
+    <h3>𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩𝑶𝑻 𝑺𝑬𝑺𝑺𝑰𝑶𝑵</h3>
+
+    <a href="/pair-page" class="button">
+      <span>
+        <i class="fas fa-key"></i>
+        𝑷𝑨𝑰𝑹𝑰𝑵𝑮-𝑪𝑶𝑫𝑬
+      </span>
+    </a>
+
+    <a href="https://whatsapp.com/channel/0029VbDYYAzATRSkeyugCc2x"
+       class="button"
+       target="_blank">
+
+      <span>
+        <i class="fab fa-whatsapp"></i>
+        𝑾𝒉𝒂𝒕𝒔𝑨𝒑𝒑
+      </span>
+
+    </a>
+
+    <p>𝙷𝙰𝚅𝙴 𝙰𝙽𝚈 𝙴𝚁𝚁𝙾𝚁 𝙲𝙻𝙸𝙲𝙺 𝙴𝚁𝚁𝙾𝚁 𝙱𝚄𝚃𝚃𝙾𝙽</p>
+
+    <a href="https://THE7ALi8INSiDE"
+       class="button"
+       target="_blank">
+
+      <span>
+        <i class="fas fa-exclamation-triangle"></i>
+        𝑬𝑹𝑹𝑶𝑹
+      </span>
+
+    </a>
+
+  </div>
+
+  <footer>
+    💫 𝐀𝐋𝐈 𝐑𝐀𝐙𝐀 💫
+  </footer>
+
+</body>
+</html>

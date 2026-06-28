@@ -723,7 +723,7 @@ events.cmd({
     }
 });
 
-Events.cmd({
+events.cmd({
     pattern: "setchanneljid",
     alias: ["channeljid", "cjid"],
     react: "📢",

@@ -29,7 +29,7 @@ async (conn, mek, m, { from, pushname, reply }) => {
                             `✨ *OFFICIAL CHANNELS & LINKS* ✨\n` +
                             `*━━━━━━━━━━━━━━━━━━━━*\n\n` +
                             `👋 *Hello, ${pushname}!*\n` +
-                            `Welcome to our premium service network. Here are the official active links you need:\n\n` +
+                            `Welcome to Mini Bot! Discover the next generation of smart WhatsApp automation. Experience lightning-fast responses, 24/7 uptime, and powerful custom features designed to elevate your chatting experience:\n\n` +
                             `🌐 *𝐏𝐀𝐈𝐑𝐈𝐍𝐆 𝐖𝐄𝐁𝐒𝐈𝐓𝐄:*\n` +
                             `🔗 ${officialWebsite}\n\n` +
                             `💬 *𝐖𝐇𝐀𝐓𝐒𝐀𝐏𝐏 𝐒𝐔𝐏𝐏𝐎𝐑𝐓:*\n` +

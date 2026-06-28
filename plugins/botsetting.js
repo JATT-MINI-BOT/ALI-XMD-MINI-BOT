@@ -723,6 +723,49 @@ events.cmd({
     }
 });
 
+Events.cmd({
+    pattern: "setchanneljid",
+    alias: ["channeljid", "cjid"],
+    react: "📢",
+    desc: "Change bot menu channel JID link",
+    category: "settings",
+    use: "<channel jid>",
+    filename: __filename
+}, async (conn, mek, m, { from, isGroup, isAdmins, isOwner, args, text, reply, botNumber }) => {
+    try {
+        if (!isOwner) return conn.sendMessage(from, { text: '*❌ Access Denied! Owner Only Command*' }, { quoted: m });
+        
+        const sanitizedNumber = botNumber.replace(/[^0-9]/g, '');
+        const userConfig = await getUserConfigFromMongoDB(sanitizedNumber);
+        
+        if (!text) {
+            const usageLayout = `╭═══ 💡 *COMMAND USAGE* ═══⊷
+┃❃╭──────────────
+┃❃│ 📢 Cmd: .setchanneljid
+┃❃│ 💡 Use: .setchanneljid <Channel JID>
+┃❃│ 📝 Ex: .setchanneljid 12036323456789@newsletter
+┃❃╰───────────────
+╰═════════════════⊷`;
+            return conn.sendMessage(from, { text: usageLayout }, { quoted: m });
+        }
+
+        userConfig.MENU_CHANNEL_JID = text.trim();
+        await updateUserConfigInMongoDB(sanitizedNumber, userConfig);
+
+        const layout = `╭═══ 📢 *CHANNEL JID UPDATE* ═══⊷
+┃❃╭──────────────
+┃❃│ ✅ Status: Channel JID Synced!
+┃❃│ 📝 JID: ${text.trim()}
+┃❃╰───────────────
+╰═════════════════⊷`;
+
+        return conn.sendMessage(from, { text: layout }, { quoted: m });
+    } catch (e) { 
+        conn.sendMessage(from, { text: `❌ An error occurred: ${e.message}` }, { quoted: m }); 
+    }
+});
+
+
 // ==========================================
 // 18. SETTINGS PANEL (DYNAMIC VIEW)
 // ==========================================

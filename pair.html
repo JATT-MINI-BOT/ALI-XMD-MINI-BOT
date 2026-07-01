@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩𝑶𝑻 - Link WhatsApp</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-image: url("https://i.ibb.co/pXL9RYv/temp-image.jpg");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: cover;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .box {
+      width: 300px;
+      padding: 20px;
+      position: relative;
+      text-align: center;
+      background-color: rgba(255,255,255,0.5);
+      border-radius: 10px;
+      box-shadow: none;
+    }
+
+    #text {
+      color: #000;
+    }
+
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    input, select {
+      width: 100%;
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      text-align: center;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      height: 40px;
+      border-radius: 10px;
+      border: none;
+      background-color: #000;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #result {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    .code-display {
+      background: rgba(255,255,255,0.8);
+      padding: 10px;
+      border-radius: 10px;
+      border: 2px dashed #000;
+      cursor: pointer;
+      font-size: 18px;
+      letter-spacing: 2px;
+    }
+    
+    .status-badge {
+      font-size: 12px;
+      color: #333;
+      margin-top: 8px;
+      font-weight: normal;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="box">
+      <h2 id="text">𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩𝑶𝑻</h2>
+      <p style="color: #333; font-size: 12px; margin-top: -10px;">BEST MINI BOT // V1.0</p>
+      
+      <div class="input-container">
+        <select id="server-select" onchange="checkSelectedServerStatus()">
+          <option value="auto">⚡ Auto-Select Best Server</option>
+          <option value="https://jattminibot-aa4f30ae6666.herokuapp.com">⚡ Server 1 (0/10 Active)</option>
+          <option value="https://ali-xmd-server2.herokuapp.com">⚡ Server 2 (0/10 Active)</option>
+          <option value="https://ali-xmd-server3.herokuapp.com">⚡ Server 3 (0/10 Active)</option>
+          <option value="https://ali-xmd-server4.herokuapp.com">⚡ Server 4 (0/10 Active)</option>
+          <option value="https://ali-xmd-server5.herokuapp.com">⚡ Server 5 (0/10 Active)</option>
+        </select>
+
+        <input type="text" id="num" placeholder="923xxxxxxxx">
+        <button id="submit" onclick="submitForm()">GENERATE PAIR CODE</button>
+      </div>
+
+      <div id="result"></div>
+      <div id="server-status-info" class="status-badge"></div>
+    </div>
+  </div>
+
+  <script>
+    // 🌐 Change these URLs to match your actual Heroku App domain links!
+    const allServers = [
+      { name: "Server 1", url: "https://jattminibot-aa4f30ae6666.herokuapp.com" },
+      { name: "Server 2", url: "https://ali-xmd-server2.herokuapp.com" },
+      { name: "Server 3", url: "https://ali-xmd-server3.herokuapp.com" },
+      { name: "Server 4", url: "https://ali-xmd-server4.herokuapp.com" },
+      { name: "Server 5", url: "https://ali-xmd-server5.herokuapp.com" }
+    ];
+
+    // Functions that automatically run to pull live user counts from servers
+    async function updateDropdownWithLiveStats() {
+      const selectBox = document.getElementById('server-select');
+      
+      for(let i = 0; i < allServers.length; i++) {
+        try {
+          // Sending request to get active bots on each heroku app
+          const response = await fetch(`${allServers[i].url}/server-capacity`);
+          const data = await response.json();
+          
+          let activeCount = data.activeCount !== undefined ? data.activeCount : 0;
+          let limit = data.limit !== undefined ? data.limit : 10;
+          
+          selectBox.options[i + 1].text = `⚡ ${allServers[i].name} (${activeCount}/${limit} Active)`;
+        } catch(e) {
+          // If server fails or link is wrong, keep baseline layout
+          selectBox.options[i + 1].text = `⚡ ${allServers[i].name} (0/10 Active)`;
+        }
+      }
+    }
+
+    // Runs instantly when user selects a different option item
+    async function checkSelectedServerStatus() {
+      const serverSelect = document.getElementById('server-select');
+      const statusInfo = document.getElementById('server-status-info');
+      let selectedServer = serverSelect.value;
+
+      if(selectedServer === "auto") {
+        statusInfo.innerHTML = "System will automatically route to the emptiest server slot.";
+        return;
+      }
+
+      statusInfo.innerHTML = "Checking server logs... 🔄";
+      try {
+        const response = await fetch(`${selectedServer}/server-capacity`);
+        const data = await response.json();
+        statusInfo.innerHTML = `<b>Live Stats:</b> ${data.activeCount || 0} / 10 Active Users on this node instance.`;
+      } catch(e) {
+        statusInfo.innerHTML = "Selected server node is ready for connection (0/10 Active).";
+      }
+    }
+
+    async function submitForm() {
+      const numInput = document.getElementById('num');
+      const serverSelect = document.getElementById('server-select');
+      const resDiv = document.getElementById('result');
+      
+      let num = numInput.value.replace(/[^0-9]/g, '');
+      let selectedServer = serverSelect.value;
+
+      if (!num) {
+        resDiv.innerHTML = "<span style='color:red;'>❗ Phone number input is required</span>";
+        return;
+      }
+
+      resDiv.innerHTML = "<span style='color:black;'>Scanning server capacities... 🔎</span>";
+      let targetServer = "";
+
+      if (selectedServer === "auto") {
+        for (let s of allServers) {
+          try {
+            const checkReq = await fetch(`${s.url}/server-capacity`);
+            const capacity = await checkReq.json();
+            
+            if (capacity.isAvailable === true) {
+              targetServer = s.url;
+              break;
+            }
+          } catch (e) {
+            console.log(`${s.name} node bypass.`);
+          }
+        }
+      } else {
+        targetServer = selectedServer;
+      }
+
+      if (!targetServer && selectedServer === "auto") {
+        targetServer = ""; 
+      }
+
+      resDiv.innerHTML = "<span style='color:black;'>Requesting pairing token key... ⏳</span>";
+
+      try {
+        const req = await fetch(`${targetServer}/code?number=${num}`);
+        const data = await req.json();
+
+        if (data.code) {
+          resDiv.innerHTML = `<div class="code-display" id="copy-target" onclick="copyCode('${data.code}')">CODE: <span style="color:black;">${data.code}</span></div><p style='font-size:11px;color:#333;margin-top:5px;'>Click on the code above to copy</p>`;
+          window.currentGeneratedCode = data.code;
+          setTimeout(updateDropdownWithLiveStats, 4000);
+        } else if (data.status === 'already_connected') {
+          resDiv.innerHTML = "<span style='color:green;'>❌ Session link token already active</span>";
+        } else if (data.status === 'server_full') {
+          resDiv.innerHTML = `<span style='color:red;'>❗ ${data.message || 'Server Full (10/10)'}</span>`;
+        } else {
+          resDiv.innerHTML = "<span style='color:red;'>❌ Operation payload verification failed</span>";
+        }
+      } catch (e) {
+        resDiv.innerHTML = "<span style='color:red;'>❌ Connection handshake failed. Please try again.</span>";
+      }
+    }
+
+    function copyCode(code) {
+      navigator.clipboard.writeText(code);
+      const display = document.getElementById('copy-target');
+      if(!display) return;
+      
+      display.innerHTML = "<span style='color:blue;'>COPIED ✅</span>";
+      setTimeout(() => {
+        display.innerHTML = `CODE: <span style="color:black;">${code}</span>`;
+      }, 1500);
+    }
+
+    window.onload = updateDropdownWithLiveStats;
+  </script>
+</body>
+</html>

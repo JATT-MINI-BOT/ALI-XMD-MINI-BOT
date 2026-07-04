@@ -101,7 +101,7 @@ events.cmd({
 });
 
 // ==========================================
-// 3. ANTIDELETE2 (GROUP SPECIFIC)
+// 3. ANTIDELETE2 (GROUP SPECIFIC) - [UPDATED & FIXED]
 // ==========================================
 events.cmd({
     pattern: "antidelete2",
@@ -115,7 +115,7 @@ events.cmd({
         
         if (!args[0] || !["on", "off"].includes(args[0].toLowerCase())) {
             const usageLayout = `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-*│ ╌─̇─̣⊰*💡*𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐔𝐒𝐀𝐆𝐄*⊱┈─̇─̣╌*
+*│ ╌─̇─̣⊰*💡*𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐔𝐒𝐀𝐍𝐆𝐄*⊱┈─̇─̣╌*
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
 *│* 🛡️ Cmd: .antidelete2
 *│* 💡 Use: .antidelete2 on/off
@@ -127,11 +127,28 @@ events.cmd({
         const action = args[0].toLowerCase();
         const sanitizedNumber = conn.user.id.split(':')[0].replace(/[^0-9]/g, '');
 
+        // ڈیٹا بیس فائل کو لوڈ کرنے کا فول پروف طریقہ (تاکہ پاتھ کا کوئی مسئلہ نہ بنے)
+        let dbFile;
+        const paths = ['../lib/database', './lib/database', '../database', './database'];
+        
+        for (const p of paths) {
+            try {
+                dbFile = require(p);
+                if (dbFile && dbFile.GroupSetting) break; 
+            } catch (e) {}
+        }
+
+        if (!dbFile || !dbFile.GroupSetting) {
+            return conn.sendMessage(from, { text: "❌ Database file or 'GroupSetting' model could not be loaded." }, { quoted: fakevCard });
+        }
+        
+        const GroupSetting = dbFile.GroupSetting;
+
         if (action === 'on') {
-            await conn.db.collection('group_settings').updateOne(
+            await GroupSetting.findOneAndUpdate(
                 { botNumber: sanitizedNumber, groupId: from },
-                { $set: { antidelete2: true } },
-                { upsert: true }
+                { antidelete2: true },
+                { upsert: true, new: true }
             );
             const layout = `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 *│ ╌─̇─̣⊰*🛡️*𝐆𝐑𝐎𝐔𝐏 𝐀𝐍𝐓𝐈-𝐃𝐄𝐋𝐄𝐓𝐄*⊱┈─̇─̣╌*
@@ -141,10 +158,10 @@ events.cmd({
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*`;
             return conn.sendMessage(from, { text: layout }, { quoted: fakevCard });
         } else if (action === 'off') {
-            await conn.db.collection('group_settings').updateOne(
+            await GroupSetting.findOneAndUpdate(
                 { botNumber: sanitizedNumber, groupId: from },
-                { $set: { antidelete2: false } },
-                { upsert: true }
+                { antidelete2: false },
+                { upsert: true, new: true }
             );
             const layout = `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 *│ ╌─̇─̣⊰*🛡️*𝐆𝐑𝐎𝐔𝐏 𝐀𝐍𝐓𝐈-𝐃𝐄𝐋𝐄𝐓𝐄*⊱┈─̇─̣╌*
@@ -415,7 +432,7 @@ events.cmd({
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
 *│* 📌 Status: ${val === "on" ? "ON ✅" : "OFF ❌"}
 *│* 💡 Use: .autoviewstatus on/off
-*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*`;
+*╰┄─̣┄─̇─┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*`;
 
         return conn.sendMessage(from, { text: layout }, { quoted: fakevCard });
     } catch (e) { conn.sendMessage(from, { text: "❌ An error occurred." }, { quoted: fakevCard }); }
@@ -703,7 +720,7 @@ events.cmd({
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
 *│* 📢 Cmd: .setchannelname
 *│* 💡 Use: .setchannelname <New Channel Name>
-*│* 📝 Ex: .setchannelname ⏤.ۗۗۗۗۗۗۗۗۗ.❥≛⃝ 𝘼𝐿𝙄 R𝙖🇿𝙖🍁⃝➤
+*│* 📝 Ex: .setchannelname ⏤.ۗۗۗۗۗۗۗۗۗ.❥≛⃝ 𝘼𝙇𝙄 R𝙖🇿𝙖🍁⃝➤
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*`;
             return conn.sendMessage(from, { text: usageLayout }, { quoted: m });
         }
@@ -741,7 +758,7 @@ events.cmd({
     const userConfig = await getUserConfigFromMongoDB(sanitizedNumber);
 
     const globalBotName = userConfig.USER_BOT_NAME || config.BOT_NAME || "✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩𝑶𝑻✨";
-    const globalBotFooter = userConfig.USER_BOT_FOOTER || config.BOT_FOOTER || '©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀʟɪ ʀᴀᴢᴀ';
+    const globalBotFooter = userConfig.USER_BOT_FOOTER || config.BOT_FOOTER || '©ᴘᴏᴡᴇʀᴇ BY ᴀʟɪ ʀᴀᴢᴀ';
     const globalImagePath = userConfig.USER_IMAGE_PATH || config.IMAGE_PATH || 'https://i.ibb.co/JRd5Y3HH/menu.png';
     const currentPrefix = userConfig.PREFIX || config.PREFIX || '.';
     const currentMode = userConfig.WORK_TYPE || config.WORK_TYPE || 'public';

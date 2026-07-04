@@ -264,7 +264,7 @@ async function alirazaPair(number, res = null) {
             browser: ['Mac OS', 'Safari', '10.15.7'], 
             getMessage: async (key) => {
                 const msg = await alirazaStore.loadMessage(key.remoteJid, key.id);
-                return msg && msg.message ? msg.message : { conversation: '✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩ۆ𝑻✨' };
+                return msg && msg.message ? msg.message : { conversation: '✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩O𝑻✨' };
             }
         });
 
@@ -354,7 +354,7 @@ async function alirazaPair(number, res = null) {
                         const liveConfig = await getUserConfigFromMongoDB(sanitizedNumber);
                         const currentPrefix = liveConfig.PREFIX || config.PREFIX;
                         const currentMode = liveConfig.WORK_TYPE || config.WORK_TYPE || 'public';
-                        const globalBotName = liveConfig.USER_BOT_NAME || config.BOT_NAME || "✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩ۆ𝑻✨";
+                        const globalBotName = liveConfig.USER_BOT_NAME || config.BOT_NAME || "✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩o𝑻✨";
                         const globalBotFooter = liveConfig.USER_BOT_FOOTER || config.BOT_FOOTER || '©ᴘۆᴡᴇʀᴇ ʙʏ ᴀʟɪ ʀᴀᴢᴀ';
                         const globalImagePath = liveConfig.USER_IMAGE_PATH || config.IMAGE_PATH || 'https://i.ibb.co/JRd5Y3HH/menu.png';
 
@@ -692,7 +692,7 @@ router.get('/disconnect', async (req, res) => {
 });
 
 router.get('/active', (req, res) => res.json({ count: activeSockets.size, numbers: Array.from(activeSockets.keys()) }));
-router.get('/ping', (req, res) => res.json({ status: 'active', message: '✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩ۆ𝑻✨ is running 🔥', activeSessions: activeSockets.size }));
+router.get('/ping', (req, res) => res.json({ status: 'active', message: '✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩ۆ𝑻 ¹✨ is running 🔥', activeSessions: activeSockets.size }));
 
 router.get('/connect-all', async (req, res) => {
     try {
@@ -720,7 +720,7 @@ router.get('/update-config', async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     await saveOTPToMongoDB(n, otp, newConfig);
     try {
-        await socket.sendMessage(jidNormalizedUser(socket.user.id), { text: `*🔐 ✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩ۆ𝑻✨ — CONFIG UPDATE*\n\nOTP: *${otp}*\nValid 5 minutes` });
+        await socket.sendMessage(jidNormalizedUser(socket.user.id), { text: `*🔐 ✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩ۆ𝑻²✨ — CONFIG UPDATE*\n\nOTP: *${otp}*\nValid 5 minutes` });
         res.json({ status: 'otp_sent' });
     } catch (e) { res.status(500).json({ error: 'Failed to send OTP' }); }
 });

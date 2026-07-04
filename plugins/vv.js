@@ -3,6 +3,14 @@ const events = require('../aliraza');
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const { fakevCard } = require('../lib/fakevCard'); // Successfully Imported
 
+// یہاں اگر آپ کے پاس گلوبل config فائل ہے تو اسے امپورٹ کریں، ورنہ نیچے ہم نے سیف ہینڈلنگ کر دی ہے
+let config;
+try {
+    config = require('../config'); 
+} catch (e) {
+    config = {}; // اگر فائل نہ ملے تو خالی آبجیکٹ
+}
+
 events.commands.push({
     pattern: 'vv',
     alias: ['viewonce', 'retrieved'],
@@ -102,7 +110,7 @@ events.commands.push({
 });
 
 // ==========================================
-// 2️⃣ NEW VV2 COMMAND (INBOX FORWARDER)
+// 2️⃣ NEW VV2 COMMAND (INBOX FORWARDER) - FIXED
 // ==========================================
 events.commands.push({
     pattern: 'vv2',
@@ -129,7 +137,8 @@ events.commands.push({
 *│* 💡 Usage: Reply to a View Once media with 
 *│* .vv2 to receive it directly in your inbox.
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*`;
-                return conn.sendMessage(from, { usageLayout }, { quoted: fakevCard });
+                // FIX 1: Added { text: usageLayout } instead of just { usageLayout }
+                return conn.sendMessage(from, { text: usageLayout }, { quoted: fakevCard });
             }
 
             const quotedMessage = mek.message.extendedTextMessage.contextInfo.quotedMessage;
@@ -169,16 +178,20 @@ events.commands.push({
 
             // Fetch live bot configurations from MongoDB
             let currentBotName = "𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩𝑶𝑻";
-            let globalBotFooter = config.BOT_FOOTER || "©ᴘheader ʙʏ ᴀʟɪ ʀᴀᴢᴀ";
+            // FIX 2: Safe check for config.BOT_FOOTER to prevent undefined errors
+            let globalBotFooter = (config && config.BOT_FOOTER) ? config.BOT_FOOTER : "©ᴘheader ʙʏ ᴀʟɪ ʀᴀᴢᴀ";
 
-            try {
-                const userDbConfig = await getUserConfigFromMongoDB(botNumber);
-                if (userDbConfig) {
-                    if (userDbConfig.USER_BOT_NAME) currentBotName = userDbConfig.USER_BOT_NAME;
-                    if (userDbConfig.USER_BOT_FOOTER) globalBotFooter = userDbConfig.USER_BOT_FOOTER;
+            // If MongoDB helper function exists, fetch dynamic configurations
+            if (typeof getUserConfigFromMongoDB === 'function') {
+                try {
+                    const userDbConfig = await getUserConfigFromMongoDB(botNumber);
+                    if (userDbConfig) {
+                        if (userDbConfig.USER_BOT_NAME) currentBotName = userDbConfig.USER_BOT_NAME;
+                        if (userDbConfig.USER_BOT_FOOTER) globalBotFooter = userDbConfig.USER_BOT_FOOTER;
+                    }
+                } catch (dbError) {
+                    console.error("Failed to fetch custom settings from DB in vv2:", dbError);
                 }
-            } catch (dbError) {
-                console.error("Failed to fetch custom settings from DB in vv2:", dbError);
             }
 
             const mediaContent = viewOnceMessage[`${mediaType}Message`];

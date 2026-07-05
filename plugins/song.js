@@ -6,7 +6,7 @@ const { cmd } = require('../aliraza');
 const config = require('../config');
 const { getUserConfigFromMongoDB } = require('../lib/database');
 const { fakevCard } = require('../lib/fakevCard');
-const { toAudio } = require('../lib/converter'); // پاتھ یقینی بنائیں کہ درست ہے
+const { toAudio } = require('../lib/converter');
 
 const AXIOS_DEFAULTS = {
 	timeout: 60000,
@@ -31,7 +31,6 @@ async function tryRequest(getter, attempts = 3) {
 	throw lastError;
 }
 
-// APIs Chain Functions
 async function getEliteProTechDownloadByUrl(youtubeUrl) {
 	const apiUrl = `https://eliteprotech-apis.zone.id/ytdown?url=${encodeURIComponent(youtubeUrl)}&format=mp3`;
 	const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
@@ -84,7 +83,6 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
 
         await conn.sendMessage(from, { react: { text: "⏳", key: m.key } });
 
-        // Fetch user configs from DB
         let currentBotName = "𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩𝑶𝑻";
         let globalBotFooter = config.BOT_FOOTER || "©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀʟɪ ʀᴀᴢᴀ";
 
@@ -98,7 +96,6 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
             console.error("Failed to fetch custom settings from DB in song:", dbError);
         }
 
-        // Search YouTube
         const search = await yts(query);
         if (!search.videos || !search.videos.length) {
             return conn.sendMessage(from, { text: 
@@ -110,26 +107,6 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
 
         const video = search.videos[0];
         
-        // Custom Caption Design
-        const audioCaption = `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-*│ ╌─̇─̣⊰🎵 𝐌𝐔𝐒𝐈𝐂 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄 ⊱┈─̇─̣╌*
-*│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
-*│* 🎵 Title: ${video.title}
-*│* ⏱️ Duration: ${video.timestamp || "Unknown"}
-*│* 👥 Requested By: @${sender.split("@")[0]}
-*│* 🤖 Bot: ${currentBotName}
-*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-
-> _${globalBotFooter}_ 🔰`;
-
-        // Send Thumbnail & Info first
-        const sentInfo = await conn.sendMessage(from, {
-            image: { url: video.thumbnail },
-            caption: audioCaption,
-            mentions: [sender]
-        }, { quoted: fakevCard });
-
-        // Mult-API Download Logic
 		let audioData;
 		let audioBuffer;
 		let downloadSuccess = false;
@@ -165,7 +142,6 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
 				} catch (downloadErr) {
 					if (downloadErr.response?.status === 451) continue;
 					
-					// Stream fallback
 					try {
 						const audioResponse = await axios.get(audioUrl, {
 							responseType: 'stream',
@@ -199,7 +175,6 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
 			throw new Error('All download sources failed.');
 		}
 
-		// Detect actual file format
 		const firstBytes = audioBuffer.slice(0, 12);
 		const hexSignature = firstBytes.toString('hex');
 		const asciiSignature = firstBytes.toString('ascii', 4, 8);
@@ -213,29 +188,44 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
 			fileExtension = 'wav';
 		}
 
-		// Convert to MP3 if needed
 		let finalBuffer = audioBuffer;
 		if (fileExtension !== 'mp3') {
 			try {
 				finalBuffer = await toAudio(audioBuffer, fileExtension);
 			} catch (convErr) {
-				console.error("Conversion failed, sending raw original buffer:", convErr.message);
+				console.error("Conversion failed:", convErr.message);
 			}
 		}
 
 		const cleanFileName = `${(audioData?.title || video.title || 'song').replace(/[^\w\s\-]/g, '')}.mp3`;
 
-		// Send Audio as reply to the thumbnail message
+        const audioCaption = `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
+*│ ╌─̇─̣⊰🎵 𝐌𝐔𝐒𝐈𝐂 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄 ⊱┈─̇─̣╌*
+*│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
+*│* 🎵 Title: ${video.title}
+*│* ⏱️ Duration: ${video.timestamp || "Unknown"}
+*│* 👥 Requested By: @${sender.split("@")[0]}
+*│* 🤖 Bot: ${currentBotName}
+*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
+
+> _${globalBotFooter}_ 🔰`;
+
+        // یہ تھمب نیل اب ڈائریکٹ کمانڈ لگانے والے یوزر کو رپلائی (Mention) کر کے جائے گا
+        const sentInfo = await conn.sendMessage(from, {
+            image: { url: video.thumbnail },
+            caption: audioCaption,
+            mentions: [sender]
+        }, { quoted: m }); 
+
 		await conn.sendMessage(from, {
 			audio: finalBuffer,
 			mimetype: 'audio/mpeg',
 			fileName: cleanFileName,
 			ptt: false
-		}, { quoted: sentInfo });
+		}, { quoted: sentInfo }); 
 
 		await conn.sendMessage(from, { react: { text: "✅", key: m.key } });
 
-		// Fast Temp Cleanup
 		try {
 			const tempDir = path.join(__dirname, '../temp');
 			if (fs.existsSync(tempDir)) {
@@ -261,7 +251,7 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
 `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 *│* ❌ An error occurred or all download APIs failed!
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*` 
-        }, { quoted: fakevCard });
+        }, { quoted: m });
         await conn.sendMessage(from, { react: { text: "❌", key: m.key } });
     }
 });

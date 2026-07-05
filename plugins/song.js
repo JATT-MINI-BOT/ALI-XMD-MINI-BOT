@@ -8,61 +8,11 @@ const { getUserConfigFromMongoDB } = require('../lib/database');
 const { fakevCard } = require('../lib/fakevCard');
 const { toAudio } = require('../lib/converter');
 
-const AXIOS_DEFAULTS = {
-	timeout: 60000,
-	headers: {
-		'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-		'Accept': 'application/json, text/plain, */*'
-	}
-};
-
-async function tryRequest(getter, attempts = 3) {
-	let lastError;
-	for (let attempt = 1; attempt <= attempts; attempt++) {
-		try {
-			return await getter();
-		} catch (err) {
-			lastError = err;
-			if (attempt < attempts) {
-				await new Promise(r => setTimeout(r, 1000 * attempt));
-			}
-		}
-	}
-	throw lastError;
-}
-
-async function getEliteProTechDownloadByUrl(youtubeUrl) {
-	const apiUrl = `https://eliteprotech-apis.zone.id/ytdown?url=${encodeURIComponent(youtubeUrl)}&format=mp3`;
-	const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
-	if (res?.data?.success && res?.data?.downloadURL) {
-		return { download: res.data.downloadURL, title: res.data.title };
-	}
-	throw new Error('EliteProTech ytdown returned no download');
-}
-
-async function getYupraDownloadByUrl(youtubeUrl) {
-	const apiUrl = `https://api.yupra.my.id/api/downloader/ytmp3?url=${encodeURIComponent(youtubeUrl)}`;
-	const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
-	if (res?.data?.success && res?.data?.data?.download_url) {
-		return { download: res.data.data.download_url, title: res.data.data.title };
-	}
-	throw new Error('Yupra returned no download');
-}
-
-async function getOkatsuDownloadByUrl(youtubeUrl) {
-	const apiUrl = `https://okatsu-rolezapiiz.vercel.app/downloader/ytmp3?url=${encodeURIComponent(youtubeUrl)}`;
-	const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
-	if (res?.data?.dl) {
-		return { download: res.data.dl, title: res.data.title };
-	}
-	throw new Error('Okatsu ytmp3 returned no download');
-}
-
 cmd({
     pattern: "song",
     alias: ["ytmp3", "play", "mp3", "gana", "music", "audio"],
     react: "🎵",
-    desc: "YouTube search & MP3 play with multi-API fallback chain",
+    desc: "YouTube search & MP3 play with custom super fast Railway API",
     category: "download",
     use: ".play <song name>",
     filename: __filename
@@ -93,9 +43,10 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
                 if (userDbConfig.USER_BOT_FOOTER) globalBotFooter = userDbConfig.USER_BOT_FOOTER;
             }
         } catch (dbError) {
-            console.error("Failed to fetch custom settings from DB in song:", dbError);
+            console.error("Failed to fetch custom settings from DB:", dbError);
         }
 
+        // یوٹیوب سرچ
         const search = await yts(query);
         if (!search.videos || !search.videos.length) {
             return conn.sendMessage(from, { text: 
@@ -107,102 +58,60 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
 
         const video = search.videos[0];
         
-		let audioData;
-		let audioBuffer;
-		let downloadSuccess = false;
-		
-		const apiMethods = [
-			{ name: 'EliteProTech', method: () => getEliteProTechDownloadByUrl(video.url) },
-			{ name: 'Yupra', method: () => getYupraDownloadByUrl(video.url) },
-			{ name: 'Okatsu', method: () => getOkatsuDownloadByUrl(video.url) }
-		];
-		
-		for (const apiMethod of apiMethods) {
-			try {
-				audioData = await apiMethod.method();
-				const audioUrl = audioData.download;
-				
-				if (!audioUrl) continue;
-				
-				try {
-					const audioResponse = await axios.get(audioUrl, {
-						responseType: 'arraybuffer',
-						timeout: 90000,
-						maxContentLength: Infinity,
-						maxBodyLength: Infinity,
-						decompress: true,
-						validateStatus: s => s >= 200 && s < 400,
-						headers: AXIOS_DEFAULTS.headers
-					});
-					audioBuffer = Buffer.from(audioResponse.data);
-					if (audioBuffer && audioBuffer.length > 0) {
-						downloadSuccess = true;
-						break;
-					}
-				} catch (downloadErr) {
-					if (downloadErr.response?.status === 451) continue;
-					
-					try {
-						const audioResponse = await axios.get(audioUrl, {
-							responseType: 'stream',
-							timeout: 90000,
-							maxContentLength: Infinity,
-							maxBodyLength: Infinity,
-							validateStatus: s => s >= 200 && s < 400,
-							headers: AXIOS_DEFAULTS.headers
-						});
-						const chunks = [];
-						await new Promise((resolve, reject) => {
-							audioResponse.data.on('data', c => chunks.push(c));
-							audioResponse.data.on('end', resolve);
-							audioResponse.data.on('error', reject);
-						});
-						audioBuffer = Buffer.concat(chunks);
-						if (audioBuffer && audioBuffer.length > 0) {
-							downloadSuccess = true;
-							break;
-						}
-					} catch (streamErr) {
-						continue;
-					}
-				}
-			} catch (apiErr) {
-				continue;
-			}
-		}
-		
-		if (!downloadSuccess || !audioBuffer) {
-			throw new Error('All download sources failed.');
-		}
+        // 🚀 آپ کی اپنی لائیو ریلوے API سے آڈیو ڈیٹا فیچ کرنا
+        const apiUrl = `https://songmp3api-production.up.railway.app/api/ytmp3?url=${encodeURIComponent(video.url)}`;
+        const apiRes = await axios.get(apiUrl, { timeout: 45000 });
+        
+        if (!apiRes.data || !apiRes.data.success || !apiRes.data.downloadURL) {
+            throw new Error("Custom Railway API failed to fetch download URL");
+        }
 
-		const firstBytes = audioBuffer.slice(0, 12);
-		const hexSignature = firstBytes.toString('hex');
-		const asciiSignature = firstBytes.toString('ascii', 4, 8);
+        const audioUrl = apiRes.data.downloadURL;
+        const songTitle = apiRes.data.title || video.title;
 
-		let fileExtension = 'mp3';
-		if (asciiSignature === 'ftyp' || hexSignature.startsWith('000000')) {
-			if (audioBuffer.slice(4, 8).toString('ascii') === 'ftyp') fileExtension = 'm4a';
-		} else if (audioBuffer.toString('ascii', 0, 4) === 'OggS') {
-			fileExtension = 'ogg';
-		} else if (audioBuffer.toString('ascii', 0, 4) === 'RIFF') {
-			fileExtension = 'wav';
-		}
+        // ڈائریکٹ آڈیو بفر ڈاؤن لوڈ کرنا
+        const audioResponse = await axios.get(audioUrl, {
+            responseType: 'arraybuffer',
+            timeout: 60000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+        });
+        
+        let audioBuffer = Buffer.from(audioResponse.data);
+        if (!audioBuffer || audioBuffer.length === 0) {
+            throw new Error("Downloaded buffer is empty");
+        }
 
-		let finalBuffer = audioBuffer;
-		if (fileExtension !== 'mp3') {
-			try {
-				finalBuffer = await toAudio(audioBuffer, fileExtension);
-			} catch (convErr) {
-				console.error("Conversion failed:", convErr.message);
-			}
-		}
+        // فائل فارمیٹ چیک اور کنورژن (اگر ضرورت ہو)
+        const firstBytes = audioBuffer.slice(0, 12);
+        const hexSignature = firstBytes.toString('hex');
+        const asciiSignature = firstBytes.toString('ascii', 4, 8);
 
-		const cleanFileName = `${(audioData?.title || video.title || 'song').replace(/[^\w\s\-]/g, '')}.mp3`;
+        let fileExtension = 'mp3';
+        if (asciiSignature === 'ftyp' || hexSignature.startsWith('000000')) {
+            if (audioBuffer.slice(4, 8).toString('ascii') === 'ftyp') fileExtension = 'm4a';
+        } else if (audioBuffer.toString('ascii', 0, 4) === 'OggS') {
+            fileExtension = 'ogg';
+        } else if (audioBuffer.toString('ascii', 0, 4) === 'RIFF') {
+            fileExtension = 'wav';
+        }
+
+        let finalBuffer = audioBuffer;
+        if (fileExtension !== 'mp3') {
+            try {
+                finalBuffer = await toAudio(audioBuffer, fileExtension);
+            } catch (convErr) {
+                console.error("Conversion failed, using original buffer:", convErr.message);
+            }
+        }
+
+        const cleanFileName = `${songTitle.replace(/[^\w\s\-]/g, '')}.mp3`;
 
         const audioCaption = `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 *│ ╌─̇─̣⊰🎵 𝐌𝐔𝐒𝐈𝐂 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄 ⊱┈─̇─̣╌*
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
-*│* 🎵 Title: ${video.title}
+*│* 🎵 Title: ${songTitle}
 *│* ⏱️ Duration: ${video.timestamp || "Unknown"}
 *│* 👥 Requested By: @${sender.split("@")[0]}
 *│* 🤖 Bot: ${currentBotName}
@@ -210,46 +119,48 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
 
 > _${globalBotFooter}_ 🔰`;
 
-        // یہ تھمب نیل اب ڈائریکٹ کمانڈ لگانے والے یوزر کو رپلائی (Mention) کر کے جائے گا
+        // 1. گانے کا تھمب نیل ڈائریکٹ کمانڈ لگانے والے یوزر کو رپلائی کر کے جائے گا
         const sentInfo = await conn.sendMessage(from, {
             image: { url: video.thumbnail },
             caption: audioCaption,
             mentions: [sender]
         }, { quoted: m }); 
 
-		await conn.sendMessage(from, {
-			audio: finalBuffer,
-			mimetype: 'audio/mpeg',
-			fileName: cleanFileName,
-			ptt: false
-		}, { quoted: sentInfo }); 
+        // 2. اس کے فوراً بعد گانا آڈیو میں جائے گا (تھمب نیل کو رپلائی کر کے)
+        await conn.sendMessage(from, {
+            audio: finalBuffer,
+            mimetype: 'audio/mpeg',
+            fileName: cleanFileName,
+            ptt: false
+        }, { quoted: sentInfo }); 
 
-		await conn.sendMessage(from, { react: { text: "✅", key: m.key } });
+        await conn.sendMessage(from, { react: { text: "✅", key: m.key } });
 
-		try {
-			const tempDir = path.join(__dirname, '../temp');
-			if (fs.existsSync(tempDir)) {
-				const files = fs.readdirSync(tempDir);
-				const now = Date.now();
-				files.forEach(file => {
-					const filePath = path.join(tempDir, file);
-					try {
-						const stats = fs.statSync(filePath);
-						if (now - stats.mtimeMs > 10000) {
-							if (file.endsWith('.mp3') || file.endsWith('.m4a') || /^\d+\.(mp3|m4a)$/.test(file)) {
-								fs.unlinkSync(filePath);
-							}
-						}
-					} catch (e) {}
-				});
-			}
-		} catch (cleanupErr) {}
+        // عارضی فائلوں کی صفائی
+        try {
+            const tempDir = path.join(__dirname, '../temp');
+            if (fs.existsSync(tempDir)) {
+                const files = fs.readdirSync(tempDir);
+                const now = Date.now();
+                files.forEach(file => {
+                    const filePath = path.join(tempDir, file);
+                    try {
+                        const stats = fs.statSync(filePath);
+                        if (now - stats.mtimeMs > 10000) {
+                            if (file.endsWith('.mp3') || file.endsWith('.m4a') || /^\d+\.(mp3|m4a)$/.test(file)) {
+                                fs.unlinkSync(filePath);
+                            }
+                        }
+                    } catch (e) {}
+                });
+            }
+        } catch (cleanupErr) {}
 
     } catch (err) {
         console.error("PLAY ERROR:", err);
         conn.sendMessage(from, { text: 
 `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-*│* ❌ An error occurred or all download APIs failed!
+*│* ❌ An error occurred or Custom Railway API failed!
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*` 
         }, { quoted: m });
         await conn.sendMessage(from, { react: { text: "❌", key: m.key } });

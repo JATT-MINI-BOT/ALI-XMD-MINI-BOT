@@ -1,37 +1,36 @@
-const axios = require('axios');
-const yts = require('yt-search');
-const ytdl = require('@distube/ytdl-core'); // لوکل انجن بیک اپ کے لیے دوبارہ شامل کر دیا گیا
-const { cmd } = require('../aliraza');
-const config = require('../config');
-const { getUserConfigFromMongoDB } = require('../lib/database');
-const { fakevCard } = require('../lib/fakevCard');
+const axios = require("axios");
+const yts = require("yt-search");
+const { cmd } = require("../aliraza");
+const config = require("../config");
+const { getUserConfigFromMongoDB } = require("../lib/database");
+const { fakevCard } = require("../lib/fakevCard");
 
 cmd({
     pattern: "song",
     alias: ["ytmp3", "play", "mp3", "gana", "music", "audio"],
     react: "🎵",
-    desc: "YouTube search & MP3 play with Faizan Vercel API & Local Fallback Backup",
+    desc: "YouTube search & MP3 play (2-in-1 Image + Audio Mode with User Mention)",
     category: "download",
-    use: ".song <song name>",
+    use: ".play <song name>",
     filename: __filename
 },
-async (conn, mek, m, { from, args, botNumber, sender }) => {
+async (conn, mek, m, { from, args, reply, botNumber, sender }) => {
     try {
         const query = args.join(" ");
         if (!query) {
             const noQueryLayout = `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-*│ ╌─̇─̣⊰🎵 𝐌𝐔𝐒𝐈𝐂 𝐏𝐋𝐀𝐘𝐄Ｒ ⊱┈─̇─̣╌*
+*│ ╌─̇─̣⊰🎵 𝐌𝐔𝐒𝐈𝐂 𝐏𝐋𝐀𝐘𝐄𝐑 ⊱┈─̇─̣╌*
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
 *│* ❌ Please Provide A Song Name Or Link
 *│* 💡 Use: .song <song name>
-*│* 📝 Ex: .song past lives
+*│* 📝 Ex: .song let me love you
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*`;
             return conn.sendMessage(from, { text: noQueryLayout }, { quoted: fakevCard });
         }
 
-        await conn.sendMessage(from, { react: { text: "⏳", key: m.key } });
+        await conn.sendMessage(from, { react: { text: "🎵", key: m.key } });
 
-        // ڈیٹا بیس سے بوٹ کا نام اور فوٹر حاصل کرنا
+        // Fetch live user configs from MongoDB
         let currentBotName = "𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩𝑶𝑻";
         let globalBotFooter = config.BOT_FOOTER || "©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀʟɪ ʀᴀᴢᴀ";
 
@@ -42,13 +41,12 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
                 if (userDbConfig.USER_BOT_FOOTER) globalBotFooter = userDbConfig.USER_BOT_FOOTER;
             }
         } catch (dbError) {
-            console.error("Failed to fetch custom settings from DB:", dbError);
+            console.error("Failed to fetch custom settings from DB in song:", dbError);
         }
 
-        // یوٹیوب سرچ
-        const ytsSearch = await yts(query);
-        if (!ytsSearch || !ytsSearch.videos.length) {
-            await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+        /* 🔍 Search YouTube */
+        const search = await yts(query);
+        if (!search.videos || !search.videos.length) {
             return conn.sendMessage(from, { text: 
 `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 *│* ❌ No results found for your query!
@@ -56,76 +54,72 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
             }, { quoted: fakevCard });
         }
 
-        const video = ytsSearch.videos[0];
-        const videoUrl = video.url;
+        const video = search.videos[0];
         let downloadUrl = "";
         let songTitle = video.title;
-        let songDuration = video.timestamp || "Unknown";
 
-        // 🚀 1. پرائمری طریقہ: نئی فائیکان ورسل API سے ٹرائی کرنا
+        /* 🚀 Fetch Audio Link from Faizan API */
         try {
-            const apiUrl = `https://faizan-api.vercel.app/api/ytmp3?url=${encodeURIComponent(videoUrl)}`;
-            const { data } = await axios.get(apiUrl, { timeout: 15000 });
+            const res = await axios.get(
+                `https://faizan-api.vercel.app/api/ytmp3?url=${encodeURIComponent(video.url)}`,
+                { timeout: 20000 }
+            );
             
-            if (data && data.status === true && data.result && data.result.download) {
-                downloadUrl = data.result.download;
-                if (data.result.title) songTitle = data.result.title;
-                if (data.result.duration) songDuration = data.result.duration;
+            if (res.data && res.data.status && res.data.result?.download) {
+                downloadUrl = res.data.result.download;
+                songTitle = res.data.result.title || video.title;
             }
         } catch (apiErr) {
-            console.log("Faizan Vercel API failed or timed out, switching to local backup engine...");
+            console.error('[play] Faizan API error:', apiErr.message);
         }
 
-        // 🛠️ 2. سیکنڈری طریقہ (بیک اپ): اگر پبلک API کام نہ کرے تو لوکل پیکج خود لنک نکالے گا
         if (!downloadUrl) {
-            const info = await ytdl.getInfo(videoUrl);
-            const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-            if (!audioFormats || audioFormats.length === 0) {
-                throw new Error("Both Public API and Local Backup Engine failed to fetch audio link.");
-            }
-            const bestAudio = audioFormats.find(f => f.audioBitrate === 128) || audioFormats[0];
-            downloadUrl = bestAudio.url;
-            songTitle = info.videoDetails.title;
+            return conn.sendMessage(from, { text: 
+`*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
+*│* ❌ Audio link could not be fetched from API.
+*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*` 
+            }, { quoted: fakevCard });
         }
-        
-        const cleanFileName = `${songTitle.replace(/[^\w\s\-]/g, '')}.mp3`;
 
+        // 📝 کسٹم باکس ڈیزائن مع مینشن (Mentions)
         const audioCaption = `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 *│ ╌─̇─̣⊰🎵 𝐌𝐔𝐒𝐈𝐂 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄 ⊱┈─̇─̣╌*
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
 *│* 🎵 Title: ${songTitle}
-*│* ⏱️ Duration: ${songDuration}
+*│* ⏱️ Duration: ${video.timestamp || "Unknown"}
 *│* 👥 Requested By: @${sender.split("@")[0]}
 *│* 🤖 Bot: ${currentBotName}
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 
 > _${globalBotFooter}_ 🔰`;
 
-        // 1. گانے کا تھمب نیل یوزر کو مینشن کر کے جائے گا
+        /* 🖼️ 1. پہلے گانے کی پکچر ڈیزائن اور مینشن کے ساتھ جائے گی */
         const sentInfo = await conn.sendMessage(from, {
             image: { url: video.thumbnail },
             caption: audioCaption,
-            mentions: [sender]
-        }, { quoted: m });
+            mentions: [sender] // یہ لائن یوزر کو تھمب نیل پر ٹیگ (Mention) کرے گی
+        }, { quoted: fakevCard });
 
-        // 2. اس کے فوراً بعد گانا آڈیو فارمیٹ میں جائے گا (تھمب نیل کو رپلائی کر کے)
+        const cleanFileName = `${songTitle.replace(/[^\w\s\-]/g, '')}.mp3`;
+
+        /* 🎵 2. اس کے فوراً بعد گانا علیحدہ سے آڈیو میں جائے گا (تصویر والے میسج کو رپلائی کر کے) */
         await conn.sendMessage(from, {
-            audio: { url: downloadUrl },
+            audio: { url: downloadUrl }, 
             mimetype: "audio/mpeg",
+            ptt: false,
             fileName: cleanFileName,
-            ptt: false
-        }, { quoted: sentInfo });
+            upload: conn.waUploadToServer
+        }, { quoted: sentInfo }); 
 
         await conn.sendMessage(from, { react: { text: "✅", key: m.key } });
 
-    } catch (error) {
-        console.error("Play Error:", error.message);
-        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
-        return conn.sendMessage(from, { text: 
+    } catch (err) {
+        console.error("PLAY ERROR:", err);
+        conn.sendMessage(from, { text: 
 `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-*│* ❌ Download failed or connection error!
-*│* 📝 ${error.message}
+*│* ❌ An error occurred while processing the song.
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*` 
-        }, { quoted: m });
+        }, { quoted: fakevCard });
+        await conn.sendMessage(from, { react: { text: "❌", key: m.key } });
     }
 });

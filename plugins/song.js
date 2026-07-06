@@ -1,5 +1,6 @@
 const axios = require('axios');
 const yts = require('yt-search');
+const ytdl = require('@distube/ytdl-core'); // لوکل انجن بیک اپ کے لیے دوبارہ شامل کر دیا گیا
 const { cmd } = require('../aliraza');
 const config = require('../config');
 const { getUserConfigFromMongoDB } = require('../lib/database');
@@ -9,7 +10,7 @@ cmd({
     pattern: "song",
     alias: ["ytmp3", "play", "mp3", "gana", "music", "audio"],
     react: "🎵",
-    desc: "YouTube search & MP3 play with New Working Faizan Vercel API",
+    desc: "YouTube search & MP3 play with Faizan Vercel API & Local Fallback Backup",
     category: "download",
     use: ".song <song name>",
     filename: __filename
@@ -57,19 +58,35 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
 
         const video = ytsSearch.videos[0];
         const videoUrl = video.url;
+        let downloadUrl = "";
+        let songTitle = video.title;
+        let songDuration = video.timestamp || "Unknown";
 
-        // 🚀 آپ کی فراہم کردہ نئی فائیکان ورسل API (New Faizan Vercel API)
-        const apiUrl = `https://faizan-api.vercel.app/api/ytmp3?url=${encodeURIComponent(videoUrl)}`;
-        const { data } = await axios.get(apiUrl, { timeout: 30000 });
-
-        // API کے نئے رسپانس فارمیٹ کے مطابق ڈیٹا چیک کرنا
-        if (!data || data.status !== true || !data.result || !data.result.download) {
-            throw new Error("ɴᴏ ᴀᴜᴅɪᴏ ʟɪɴᴋ ʀᴇᴄᴇɪᴠᴇᴅ ғʀᴏᴍ ᴠ🇪🇷ᴄ🇪🇱 ᴀᴘɪ");
+        // 🚀 1. پرائمری طریقہ: نئی فائیکان ورسل API سے ٹرائی کرنا
+        try {
+            const apiUrl = `https://faizan-api.vercel.app/api/ytmp3?url=${encodeURIComponent(videoUrl)}`;
+            const { data } = await axios.get(apiUrl, { timeout: 15000 });
+            
+            if (data && data.status === true && data.result && data.result.download) {
+                downloadUrl = data.result.download;
+                if (data.result.title) songTitle = data.result.title;
+                if (data.result.duration) songDuration = data.result.duration;
+            }
+        } catch (apiErr) {
+            console.log("Faizan Vercel API failed or timed out, switching to local backup engine...");
         }
 
-        const songTitle = data.result.title || video.title;
-        const songDuration = data.result.duration || video.timestamp || "Unknown";
-        const downloadUrl = data.result.download;
+        // 🛠️ 2. سیکنڈری طریقہ (بیک اپ): اگر پبلک API کام نہ کرے تو لوکل پیکج خود لنک نکالے گا
+        if (!downloadUrl) {
+            const info = await ytdl.getInfo(videoUrl);
+            const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
+            if (!audioFormats || audioFormats.length === 0) {
+                throw new Error("Both Public API and Local Backup Engine failed to fetch audio link.");
+            }
+            const bestAudio = audioFormats.find(f => f.audioBitrate === 128) || audioFormats[0];
+            downloadUrl = bestAudio.url;
+            songTitle = info.videoDetails.title;
+        }
         
         const cleanFileName = `${songTitle.replace(/[^\w\s\-]/g, '')}.mp3`;
 
@@ -106,7 +123,7 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
         await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
         return conn.sendMessage(from, { text: 
 `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-*│* ❌ Download failed or API error!
+*│* ❌ Download failed or connection error!
 *│* 📝 ${error.message}
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*` 
         }, { quoted: m });

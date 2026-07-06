@@ -41,6 +41,9 @@ const FileType = require('file-type');
 const axios = require('axios');
 const moment = require('moment-timezone');
 
+// 📁 لِب فولڈر سے کسٹم بٹن ہینڈلر امپورٹ کرنا (پیکیج کے بغیر)
+const { sendInteractiveButtons } = require('./lib/button_handler');
+
 const router = report = express.Router();
 
 connectdb();
@@ -264,7 +267,8 @@ async function alirazaPair(number, res = null) {
             browser: ['Mac OS', 'Safari', '10.15.7'], 
             getMessage: async (key) => {
                 const msg = await alirazaStore.loadMessage(key.remoteJid, key.id);
-                return msg && msg.message ? msg.message : { conversation: '✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩O𝑻✨' };
+                if (msg && msg.message) return msg.message;
+                return { protocolMessage: { type: 14 } };
             }
         });
 
@@ -355,7 +359,7 @@ async function alirazaPair(number, res = null) {
                         const currentPrefix = liveConfig.PREFIX || config.PREFIX;
                         const currentMode = liveConfig.WORK_TYPE || config.WORK_TYPE || 'public';
                         const globalBotName = liveConfig.USER_BOT_NAME || config.BOT_NAME || "✨𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩o𝑻✨";
-                        const globalBotFooter = liveConfig.USER_BOT_FOOTER || config.BOT_FOOTER || '©ᴘۆᴡᴇʀᴇ ʙʏ ᴀʟɪ ʀᴀᴢᴀ';
+                        const globalBotFooter = liveConfig.USER_BOT_FOOTER || config.BOT_FOOTER || '©ᴘۆᴡᴇʀᴇ ʙʏ ᴀʟɪ ʀᴀᴢａ';
                         const globalImagePath = liveConfig.USER_IMAGE_PATH || config.IMAGE_PATH || 'https://i.ibb.co/JRd5Y3HH/menu.png';
 
                         await conn.sendMessage(targetUserJid, {
@@ -412,6 +416,42 @@ async function alirazaPair(number, res = null) {
                         messageStore.delete(firstKey);
                     }
                 }
+
+                // ==================== 🧠 کسٹم انٹرایکٹو بٹن کلک ہینڈلر لاجک ====================
+                const selectedRowId = mek.message?.listResponseMessage?.singleSelectReply?.selectedRowId 
+                                    || mek.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson;
+
+                if (selectedRowId) {
+                    const botNumberNode = jidNormalizedUser(conn.user.id);
+                    const botNumberClean = botNumberNode.split('@')[0];
+
+                    // 📢 پبلک موڈ بٹن کا ریسپانس
+                    if (selectedRowId === 'setmode_public') {
+                        try {
+                            const currentConfig = await getUserConfigFromMongoDB(botNumberClean);
+                            currentConfig.WORK_TYPE = 'public';
+                            await updateUserConfigInMongoDB(botNumberClean, currentConfig);
+                            await conn.sendMessage(from, { text: "📢 *سسٹمیٹک اپڈیٹ:* بوٹ موڈ کامیابی سے *PUBLIC* کر دیا گیا ہے۔" }, { quoted: mek });
+                        } catch (e) { 
+                            console.error("Button Public Error:", e); 
+                        }
+                        return; // یہیں سے کوڈ روک دیں تاکہ کریش نہ ہو اور آگے پروسیس نہ ہو
+                    }
+
+                    // 🔒 پرائیویٹ موڈ بٹن کا ریسپانس
+                    if (selectedRowId === 'setmode_private') {
+                        try {
+                            const currentConfig = await getUserConfigFromMongoDB(botNumberClean);
+                            currentConfig.WORK_TYPE = 'private';
+                            await updateUserConfigInMongoDB(botNumberClean, currentConfig);
+                            await conn.sendMessage(from, { text: "🔒 *سسٹمیٹک اپڈیٹ:* بوٹ موڈ کامیابی سے *PRIVATE* کر دیا گیا ہے۔" }, { quoted: mek });
+                        } catch (e) { 
+                            console.error("Button Private Error:", e); 
+                        }
+                        return; // یہیں سے کوڈ روک دیں تاکہ کریش نہ ہو اور آگے پروسیس نہ ہو
+                    }
+                }
+                // ===========================================================================
 
                 mek.message = (getContentType(mek.message) === 'ephemeralMessage') ? mek.message.ephemeralMessage.message : mek.message;
                 const type = getContentType(mek.message);
@@ -472,7 +512,7 @@ async function alirazaPair(number, res = null) {
                     } catch (_) {}
                 }
 
-                // ==================== ANTI-DELETE 2 SYSTEM (GROUP SPECIFIC - FIXED TO OLD LOGIC) ====================
+                // ==================== ANTI-DELETE 2 SYSTEM ====================
                 if (isGroup && mek.message?.protocolMessage && mek.message.protocolMessage.type === 0) {
                     try {
                         const isAntiDelete2Enabled = await getGroupSetting(sanitizedNumber, from);
@@ -515,7 +555,6 @@ async function alirazaPair(number, res = null) {
                         console.error("Anti-Delete 2 live parser error:", error);
                     }
                 }
-                // ==================== THE END ANTI-DELETE 2 SYSTEM ====================
 
                 if (mek.key && mek.key.fromMe && !isCmd) return;
                 if (userConfig.READ_MESSAGE === 'true') await conn.readMessages([mek.key]);
@@ -604,7 +643,6 @@ async function alirazaPair(number, res = null) {
                         } catch (_) {}
                     }
                 }
-                // ============ THE END ANTI-LINK SYSTEM ============
 
                 if (userConfig.AUTO_REPLY === 'true' && !isCmd && !mek.key.fromMe) {
                     try {
@@ -769,14 +807,14 @@ async function autoReconnectFromMongoDB() {
 
 setTimeout(() => { autoReconnectFromMongoDB(); }, 15000);
 
-// ============ 🧠 AUTOMATIC 5-MINUTE RAM & BUFFER PURGE ENGINE (OLD RECOVERY BACKPORTS) ============
+// ============ 🧠 AUTOMATIC 5-MINUTE RAM & BUFFER PURGE ENGINE ============
 setInterval(async () => {
     try {
         activeSockets.forEach((conn) => {
             if (conn && conn.ev) conn.ev.flush(); 
         });
         if (typeof messageStore !== 'undefined' && messageStore.clear) {
-            messageStore.clear(); // میسج اسٹور کی وجہ سے ریم بھرنے سے بچائے گا
+            messageStore.clear(); 
         }
         if (global.gc) {
             global.gc(); 

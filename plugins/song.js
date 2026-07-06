@@ -1,20 +1,17 @@
 const axios = require('axios');
 const yts = require('yt-search');
-const fs = require('fs');
-const path = require('path');
 const { cmd } = require('../aliraza');
 const config = require('../config');
 const { getUserConfigFromMongoDB } = require('../lib/database');
 const { fakevCard } = require('../lib/fakevCard');
-const { toAudio } = require('../lib/converter');
 
 cmd({
-    pattern: "song",
-    alias: ["ytmp3", "play", "mp3", "gana", "music", "audio"],
-    react: "🎵",
-    desc: "YouTube search & MP3 play with custom super fast Railway API",
+    pattern: "song2",
+    alias: ["play2", "mp3two"],
+    react: "🎧",
+    desc: "YouTube search & MP3 play with JerryCoder API",
     category: "download",
-    use: ".play <song name>",
+    use: ".song2 <song name>",
     filename: __filename
 },
 async (conn, mek, m, { from, args, botNumber, sender }) => {
@@ -25,14 +22,15 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
 *│ ╌─̇─̣⊰🎵 𝐌𝐔𝐒𝐈𝐂 𝐏𝐋𝐀𝐘𝐄Ｒ ⊱┈─̇─̣╌*
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
 *│* ❌ Please Provide A Song Name Or Link
-*│* 💡 Use: .song <song name>
-*│* 📝 Ex: .song let me love you
+*│* 💡 Use: .song2 <song name>
+*│* 📝 Ex: .song2 past lives
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*`;
             return conn.sendMessage(from, { text: noQueryLayout }, { quoted: fakevCard });
         }
 
-        await conn.sendMessage(from, { react: { text: "⏳", key: m.key } });
+        await conn.sendMessage(from, { react: { text: "🎧", key: m.key } });
 
+        // ڈیٹا بیس سے بوٹ کی سیٹنگز نکالنا
         let currentBotName = "𝑨𝑳𝑰 𝑿𝑴𝑫 𝑴𝑰𝑵𝑰 𝑩𝑶𝑻";
         let globalBotFooter = config.BOT_FOOTER || "©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀʟɪ ʀᴀᴢᴀ";
 
@@ -47,122 +45,67 @@ async (conn, mek, m, { from, args, botNumber, sender }) => {
         }
 
         // یوٹیوب سرچ
-        const search = await yts(query);
-        if (!search.videos || !search.videos.length) {
-            return conn.sendMessage(from, { text: 
-`*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-*│* ❌ No results found for your query!
-*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*` 
-            }, { quoted: fakevCard });
+        const ytsSearch = await yts(query);
+        if (!ytsSearch || !ytsSearch.all || !ytsSearch.all[0]) {
+            await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+            return conn.sendMessage(from, { text: `*❌ ɴᴏ ʀᴇsᴜʟᴛs ғᴏᴜɴᴅ*` }, { quoted: fakevCard });
         }
 
-        const video = search.videos[0];
-        
-        // 🚀 آپ کی اپنی لائیو ریلوے API سے آڈیو ڈیٹا فیچ کرنا
-        const apiUrl = `https://songmp3api-production.up.railway.app/api/ytmp3?url=${encodeURIComponent(video.url)}`;
-        const apiRes = await axios.get(apiUrl, { timeout: 45000 });
-        
-        if (!apiRes.data || !apiRes.data.success || !apiRes.data.downloadURL) {
-            throw new Error("Custom Railway API failed to fetch download URL");
+        const res = ytsSearch.all[0];
+        const videoUrl = res.url;
+
+        // 🚀 آپ کی کوڈ والی اصل API (کوئی تبدیلی نہیں کی گئی)
+        const apiUrl = `https://jerrycoder.oggyapi.workers.dev/ytmp3?url=${encodeURIComponent(videoUrl)}`;
+        const { data } = await axios.get(apiUrl);
+
+        if (data.status !== "success" || !data.url) {
+            throw new Error("ɴᴏ ᴀᴜᴅɪᴏ ʟɪɴᴋ ʀᴇᴄᴇɪᴠᴇᴅ");
         }
 
-        const audioUrl = apiRes.data.downloadURL;
-        const songTitle = apiRes.data.title || video.title;
-
-        // ڈائریکٹ آڈیو بفر ڈاؤن لوڈ کرنا
-        const audioResponse = await axios.get(audioUrl, {
-            responseType: 'arraybuffer',
-            timeout: 60000,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            }
-        });
-        
-        let audioBuffer = Buffer.from(audioResponse.data);
-        if (!audioBuffer || audioBuffer.length === 0) {
-            throw new Error("Downloaded buffer is empty");
-        }
-
-        // فائل فارمیٹ چیک اور کنورژن (اگر ضرورت ہو)
-        const firstBytes = audioBuffer.slice(0, 12);
-        const hexSignature = firstBytes.toString('hex');
-        const asciiSignature = firstBytes.toString('ascii', 4, 8);
-
-        let fileExtension = 'mp3';
-        if (asciiSignature === 'ftyp' || hexSignature.startsWith('000000')) {
-            if (audioBuffer.slice(4, 8).toString('ascii') === 'ftyp') fileExtension = 'm4a';
-        } else if (audioBuffer.toString('ascii', 0, 4) === 'OggS') {
-            fileExtension = 'ogg';
-        } else if (audioBuffer.toString('ascii', 0, 4) === 'RIFF') {
-            fileExtension = 'wav';
-        }
-
-        let finalBuffer = audioBuffer;
-        if (fileExtension !== 'mp3') {
-            try {
-                finalBuffer = await toAudio(audioBuffer, fileExtension);
-            } catch (convErr) {
-                console.error("Conversion failed, using original buffer:", convErr.message);
-            }
-        }
-
+        const songTitle = data.title || res.title;
         const cleanFileName = `${songTitle.replace(/[^\w\s\-]/g, '')}.mp3`;
 
         const audioCaption = `*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 *│ ╌─̇─̣⊰🎵 𝐌𝐔𝐒𝐈𝐂 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄 ⊱┈─̇─̣╌*
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
 *│* 🎵 Title: ${songTitle}
-*│* ⏱️ Duration: ${video.timestamp || "Unknown"}
+*│* ⏱️ Duration: ${data.duration || "Unknown"}
 *│* 👥 Requested By: @${sender.split("@")[0]}
 *│* 🤖 Bot: ${currentBotName}
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 
 > _${globalBotFooter}_ 🔰`;
 
-        // 1. گانے کا تھمب نیل ڈائریکٹ کمانڈ لگانے والے یوزر کو رپلائی کر کے جائے گا
+        // 1. تھمب نیل میسج ڈائریکٹ کمانڈ لگانے والے یوزر کو مینشن کر کے جائے گا
         const sentInfo = await conn.sendMessage(from, {
-            image: { url: video.thumbnail },
+            image: { url: res.thumbnail },
             caption: audioCaption,
             mentions: [sender]
-        }, { quoted: m }); 
+        }, { quoted: m });
 
-        // 2. اس کے فوراً بعد گانا آڈیو میں جائے گا (تھمب نیل کو رپلائی کر کے)
+        // 2. اس کے فوراً بعد گانا آڈیو فارمیٹ میں جائے گا (تصویر والے میسج کو رپلائی کر کے)
         await conn.sendMessage(from, {
-            audio: finalBuffer,
-            mimetype: 'audio/mpeg',
+            audio: { url: data.url },
+            mimetype: "audio/mpeg",
             fileName: cleanFileName,
-            ptt: false
-        }, { quoted: sentInfo }); 
+            ptt: false,
+            contextInfo: {
+                externalAdReply: {
+                    thumbnailUrl: res.thumbnail,
+                    title: songTitle,
+                    body: `ᴅᴜʀᴀᴛɪᴏɴ: ${data.duration || "Unknown"} || ǫᴜᴀʟɪᴛʏ: ${data.quality || "128kbps"}`,
+                    sourceUrl: videoUrl,
+                    renderLargerThumbnail: true,
+                    mediaType: 1
+                }
+            }
+        }, { quoted: sentInfo });
 
         await conn.sendMessage(from, { react: { text: "✅", key: m.key } });
 
-        // عارضی فائلوں کی صفائی
-        try {
-            const tempDir = path.join(__dirname, '../temp');
-            if (fs.existsSync(tempDir)) {
-                const files = fs.readdirSync(tempDir);
-                const now = Date.now();
-                files.forEach(file => {
-                    const filePath = path.join(tempDir, file);
-                    try {
-                        const stats = fs.statSync(filePath);
-                        if (now - stats.mtimeMs > 10000) {
-                            if (file.endsWith('.mp3') || file.endsWith('.m4a') || /^\d+\.(mp3|m4a)$/.test(file)) {
-                                fs.unlinkSync(filePath);
-                            }
-                        }
-                    } catch (e) {}
-                });
-            }
-        } catch (cleanupErr) {}
-
-    } catch (err) {
-        console.error("PLAY ERROR:", err);
-        conn.sendMessage(from, { text: 
-`*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-*│* ❌ An error occurred or Custom Railway API failed!
-*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*` 
-        }, { quoted: m });
-        await conn.sendMessage(from, { react: { text: "❌", key: m.key } });
+    } catch (error) {
+        console.error("Play Error:", error.message);
+        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+        return conn.sendMessage(from, { text: `*❌ ᴅᴏᴡɴʟᴏᴀᴅ ғᴀɪʟᴇᴅ*\n\n📝 ${error.message}` }, { quoted: m });
     }
 });
